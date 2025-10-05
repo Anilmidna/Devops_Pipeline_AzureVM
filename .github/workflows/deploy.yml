@@ -7,15 +7,28 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Add SSH Key
+      - name: Add SSH key
         uses: webfactory/ssh-agent@v0.8.1
         with:
           ssh-private-key: ${{ secrets.VM_SSH_KEY }}
 
-      - name: Update files on VM
+      - name: Deploy to Azure VM
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "cd ~/site && git init 2>/dev/null || true && git remote remove origin 2>/dev/null || true && git remote add origin https://github.com/${{ github.repository }} && git fetch --all && git reset --hard origin/main"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
+            cd ~/site &&
+            if [ -d .git ]; then
+              git fetch --all &&
+              git reset --hard origin/main
+            else
+              git init &&
+              git remote add origin https://github.com/${{ github.repository }} &&
+              git fetch --all &&
+              git reset --hard origin/main
+            fi &&
+            echo '✅ Deployment successful'
+          "
